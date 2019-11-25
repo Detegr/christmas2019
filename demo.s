@@ -14,7 +14,7 @@
   stx $d01a ; Turn on raster interrupts
 
   ; Interrupt at raster line 256 for sid playback
-  lda #%10111111
+  lda #%00111111
   ldy #$00
   sta $d011 ; bitmap mode, raster interrupt high bit
   sty $d012 ; set raster interrupt
@@ -22,12 +22,11 @@
   lda #%11101
   sta $d018
 
-  lda #<sidisr
-  ldy #>sidisr
+  lda #<snowisr
+  ldy #>snowisr
   sta $314
   sty $315
 
-  cli
   ; End of sid playback initialization
 
   ; Clear screen
@@ -79,82 +78,71 @@ clr:
   dex
   bne clr
 
-  lda #$FE
+  lda #$7
+  sta $2000 - $150
+  cli
+
+  jmp *
+
+snowisr:
+  asl $d019 ; ack interrupt (re-enable it)
   ldy #$FF
-loop:
-  .rept 100
-  nop
-  .next
-
-  ; Limit loop speed
-  pha
-  txa
-  beq +
-  pla
-  inx
-  jmp loop
-
-+ pla
 
 prevsnow:
-  sty $1ec0
+  sty $2000
++ ldx $2000 - $150
   lda #$FE
 snow:
   sta $2000
-  ;sta $2001
-  ;sta $2002
-  ;sta $2003
-  ;sta $2004
-  ;sta $2005
-  ;sta $2006
-  ;sta $2007
 
-  lda prevsnow+1
-  clc
-  adc #$40
+  txa
+  beq +
+
+  lda snow+1
   sta prevsnow+1
-  bcc +
-  inc prevsnow+2
+  lda snow+2
+  sta prevsnow+2
 
-+ lda snow+1
+  inc snow+1
+  dex
+  stx $2000 - $150
+  jmp out
+
++ ldx #$7
+  stx $2000 - $150
+
+  lda snow+1
+  sta prevsnow+1
   clc
-  adc #$40
+  adc #$39
   sta snow+1
   bcc +
   inc snow+2
 
-+ inc prevsnow+2
-  inc snow+2
++ inc snow+2
   lda snow+2
   cmp #$40
   beq reset
   cmp #$41
   beq reset
-
-  jmp +
+  jmp out
 reset:
   lda #$20
   sta snow+2
   lda #$00
   sta snow+1
-
-  lda prevsnow+2
-  sta resetprevsnow+2
-  lda prevsnow+1
-  sta resetprevsnow+1
-
-  lda #$1e
-  sta prevsnow+2
-  lda #$c0
-  sta prevsnow+1
-resetprevsnow:
-  sty $1ec0
-
-+ inx
-  jmp loop
+out:
+  jsr set_sid_isr
+  pla
+  tay
+  pla
+  tax
+  pla
+  rti
 
 sidisr:
   jsr $1003
+  jsr set_snow_isr
   asl $d019 ; ack interrupt (re-enable it)
   pla
   tay
@@ -162,6 +150,28 @@ sidisr:
   tax
   pla
   rti
+
+set_sid_isr:
+  lda #<sidisr
+  ldy #>sidisr
+  sta $314
+  sty $315
+  lda #%10111111
+  ldy #$00
+  sta $d011 ; bitmap mode, raster interrupt high bit
+  sty $d012 ; set raster interrupt
+  rts
+
+set_snow_isr:
+  lda #<snowisr
+  ldy #>snowisr
+  sta $314
+  sty $315
+  lda #%00111111
+  ldy #$00
+  sta $d011 ; bitmap mode, raster interrupt high bit
+  sty $d012 ; set raster interrupt
+  rts
 
 * = $1000
   music .binary "Nantco_Bakker-Christmas_Medley.sid",126
