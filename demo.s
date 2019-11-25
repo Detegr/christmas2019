@@ -1,3 +1,53 @@
+snowflake .macro
+  asl $d019 ; ack interrupt (re-enable it)
+  ldy #$FF
+
+\1_prevsnow:
+  sty \2
++ ldx \2 - $100
+  lda #$FE
+\1_snow:
+  sta \2
+
+  txa
+  beq +
+
+  lda \1_snow+1
+  sta \1_prevsnow+1
+  lda \1_snow+2
+  sta \1_prevsnow+2
+
+  inc \1_snow+1
+  dex
+  stx \2 - $100
+  jmp \1_out
+
++ ldx #$7
+  stx \2 - $100
+
+  lda \1_snow+1
+  sta \1_prevsnow+1
+  clc
+  adc #$39
+  sta \1_snow+1
+  bcc +
+  inc \1_snow+2
+
++ inc \1_snow+2
+  lda \1_snow+2
+  cmp #$40
+  beq \1_reset
+  cmp #$41
+  beq \1_reset
+  jmp \1_out
+\1_reset:
+  lda #>\2
+  sta \1_snow+2
+  lda #<\2
+  sta \1_snow+1
+\1_out:
+.endm
+
   * = $8000
 
   sei
@@ -79,58 +129,17 @@ clr:
   bne clr
 
   lda #$7
-  sta $2000 - $150
+  sta $2000 - $100
+  sta $2008 - $100
+  sta $2020 - $100
   cli
 
   jmp *
 
 snowisr:
-  asl $d019 ; ack interrupt (re-enable it)
-  ldy #$FF
-
-prevsnow:
-  sty $2000
-+ ldx $2000 - $150
-  lda #$FE
-snow:
-  sta $2000
-
-  txa
-  beq +
-
-  lda snow+1
-  sta prevsnow+1
-  lda snow+2
-  sta prevsnow+2
-
-  inc snow+1
-  dex
-  stx $2000 - $150
-  jmp out
-
-+ ldx #$7
-  stx $2000 - $150
-
-  lda snow+1
-  sta prevsnow+1
-  clc
-  adc #$39
-  sta snow+1
-  bcc +
-  inc snow+2
-
-+ inc snow+2
-  lda snow+2
-  cmp #$40
-  beq reset
-  cmp #$41
-  beq reset
-  jmp out
-reset:
-  lda #$20
-  sta snow+2
-  lda #$00
-  sta snow+1
+  #snowflake s, $2000
+  #snowflake s2, $2008
+  #snowflake s3, $2020
 out:
   jsr set_sid_isr
   pla
