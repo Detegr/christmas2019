@@ -20,18 +20,14 @@ start:
   stx $d01a ; Turn on raster interrupts
 
   ; Interrupt at raster line 256 for sid playback
-  lda #%00111111
+  lda #%00010000
   ldy #$00
-  sta $d011 ; bitmap mode, raster interrupt high bit
+  sta $d011 ; character mode
   sty $d012 ; set raster interrupt
 
-  ; Set bitmap ram to be at 0x2000 - 0x3FFF
-  lda #%11101
-  sta $d018
-
   ; Load the snowflake interrupt routine
-  lda #<snowisr
-  ldy #>snowisr
+  lda #<sidisr
+  ldy #>sidisr
   sta $314
   sty $315
 
@@ -44,121 +40,19 @@ start:
 
   cli
 
-  lda #$FE
-
-  ; Store some pixels in the screen buffer data
-  sta screen_buffer_data+10
-  sta screen_buffer_data+20
-  sta screen_buffer_data+30
-  sta screen_buffer_data+40
-
-  ; Copy screen buffer data from the initial location
-  ; to the actual screen memory
-  ldx #$00
-  ldy #$00
-- lda screen_buffer_data,y
-  sta $2000,x
-  iny
-  lda screen_buffer_data,y
-  sta $2100,x
-  iny
-  lda screen_buffer_data,y
-  sta $2200,x
-  iny
-  lda screen_buffer_data,y
-  sta $2300,x
-  iny
-  lda screen_buffer_data,y
-  sta $2400,x
-  iny
-  lda screen_buffer_data,y
-  sta $2500,x
-  iny
-  lda screen_buffer_data,y
-  sta $2600,x
-  iny
-  lda screen_buffer_data,y
-  sta $2700,x
-  iny
-  lda screen_buffer_data,y
-  sta $2800,x
-  iny
-  lda screen_buffer_data,y
-  sta $2900,x
-  iny
-  lda screen_buffer_data,y
-  sta $2a00,x
-  iny
-  lda screen_buffer_data,y
-  sta $2b00,x
-  iny
-  lda screen_buffer_data,y
-  sta $2c00,x
-  iny
-  lda screen_buffer_data,y
-  sta $2d00,x
-  iny
-  lda screen_buffer_data,y
-  sta $2e00,x
-  iny
-  lda screen_buffer_data,y
-  sta $2f00,x
-  iny
-  lda screen_buffer_data,y
-  sta $3000,x
-  iny
-  lda screen_buffer_data,y
-  sta $3100,x
-  iny
-  lda screen_buffer_data,y
-  sta $3200,x
-  iny
-  lda screen_buffer_data,y
-  sta $3300,x
-  iny
-  lda screen_buffer_data,y
-  sta $3400,x
-  iny
-  lda screen_buffer_data,y
-  sta $3500,x
-  iny
-  lda screen_buffer_data,y
-  sta $3600,x
-  iny
-  lda screen_buffer_data,y
-  sta $3700,x
-  iny
-  lda screen_buffer_data,y
-  sta $3800,x
-  iny
-  lda screen_buffer_data,y
-  sta $3900,x
-  iny
-  lda screen_buffer_data,y
-  sta $3a00,x
-  iny
-  lda screen_buffer_data,y
-  sta $3b00,x
-  iny
-  lda screen_buffer_data,y
-  sta $3c00,x
-  iny
-  lda screen_buffer_data,y
-  sta $3d00,x
-  iny
-  lda screen_buffer_data,y
-  sta $3e00,x
-  iny
-  lda screen_buffer_data,y
-  sta $3f00,x
-  dex
-  jmp -
-
   jmp *
 
 snowisr:
   asl $d019 ; ack interrupt (re-enable it)
-  ; TODO: This ISR is not doing anything at the moment
+  dec scroll
+  bpl +
+  lda #%00010000
+  sta $d011
+  lda #$7
+  sta scroll
+  jsr swap_screen_buf
+  jmp out
++ inc $d011
 out:
   jsr set_sid_isr
   pla
@@ -167,6 +61,40 @@ out:
   tax
   pla
   rti
+
+copy_row .macro
+  ldx #$28
+- lda \1, x
+  sta \2, x
+  dex
+  bne -
+.endm
+
+copy_to_back_buffer .macro
+  #copy_row \1 + ($3e8 - $28), tmpbuf
+  .for i=0, i<24, i+=1
+  #copy_row \1 + (i * $28), \2 + ((i+1) * $28)
+  .next
+  #copy_row tmpbuf, \1
+.endm
+
+swap_screen_buf:
+  lda #%00100000
+  and $d018
+  bne higher
+  ; Enable 0x400 screen area
+  lda #%00110000
+  ora $d018
+  sta $d018
+  #copy_to_back_buffer $400, $c00
+  rts
+higher:
+  ; Enable 0xC00 screen area
+  lda #%11011111
+  and $d018
+  sta $d018
+  #copy_to_back_buffer $c00, $400
+  rts
 
 sidisr:
   jsr $1003
@@ -184,10 +112,9 @@ set_sid_isr:
   ldy #>sidisr
   sta $314
   sty $315
-  lda #%10111111
-  ldy #$00
-  sta $d011 ; bitmap mode, raster interrupt high bit
-  sty $d012 ; set raster interrupt
+  lda #%01111111
+  and $d011 ; unset raster interrupt high bit
+  sta $d011
   rts
 
 set_snow_isr:
@@ -195,60 +122,84 @@ set_snow_isr:
   ldy #>snowisr
   sta $314
   sty $315
-  lda #%00111111
-  ldy #$00
-  sta $d011 ; bitmap mode, raster interrupt high bit
-  sty $d012 ; set raster interrupt
+  lda #%10000000
+  ora $d011 ; set raster interrupt high bit
+  sta $d011
   rts
 
 clear_screen:
   ldx #$00
-- lda #$01
+- lda #$20
   sta $400,x
   sta $500,x
   sta $600,x
   sta $700,x
-  lda #$FF
-  sta $2000,x
-  sta $2100,x
-  sta $2200,x
-  sta $2300,x
-  sta $2400,x
-  sta $2500,x
-  sta $2600,x
-  sta $2700,x
-  sta $2800,x
-  sta $2900,x
-  sta $2a00,x
-  sta $2b00,x
-  sta $2c00,x
-  sta $2d00,x
-  sta $2e00,x
-  sta $2f00,x
-  sta $3000,x
-  sta $3100,x
-  sta $3100,x
-  sta $3200,x
-  sta $3300,x
-  sta $3400,x
-  sta $3500,x
-  sta $3600,x
-  sta $3700,x
-  sta $3800,x
-  sta $3900,x
-  sta $3a00,x
-  sta $3b00,x
-  sta $3c00,x
-  sta $3d00,x
-  sta $3e00,x
-  sta $3f00,x
+  sta $c00,x
+  sta $d00,x
+  sta $e00,x
+  sta $f00,x
+  lda #$0F
+  sta $d800,x
+  sta $d900,x
+  sta $da00,x
+  sta $db00,x
   dex
   bne -
+
+  ; generate snowflakes
+  lda #$2E
+  sta $450
+  sta $438
+  sta $44C
+  sta $450
+  sta $482
+  sta $493
+  sta $4A2
+  sta $502
+  sta $520
+  sta $53F
+  sta $595
+  sta $5C2
+  sta $602
+  sta $633
+  sta $6E3
+  sta $680
+  sta $699
+  sta $702
+  sta $742
+  sta $772
+  sta $791
+  sta $7F2
+
+  sta $438 + $800 + $28
+  sta $44C + $800 + $28
+  sta $450 + $800 + $28
+  sta $482 + $800 + $28
+  sta $493 + $800 + $28
+  sta $4A2 + $800 + $28
+  sta $502 + $800 + $28
+  sta $520 + $800 + $28
+  sta $53F + $800 + $28
+  sta $595 + $800 + $28
+  sta $5C2 + $800 + $28
+  sta $602 + $800 + $28
+  sta $633 + $800 + $28
+  sta $6E3 + $800 + $28
+  sta $680 + $800 + $28
+  sta $699 + $800 + $28
+  sta $702 + $800 + $28
+  sta $742 + $800 + $28
+  sta $772 + $800 + $28
+  sta $791 + $800 + $28
+  sta $7F2 + $800 + $28
+
   rts
 
-screen_buffer_data:
-  ; Fill screen buffer with empty
-  .fill $FF, $FF
+scroll:
+  .byte $7
+
+tmpbuf:
+  .fill $24, $0
 
 * = $1000
   music .binary "Nantco_Bakker-Christmas_Medley.sid",126
