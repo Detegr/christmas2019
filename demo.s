@@ -1,5 +1,3 @@
-.include "snowflake.s"
-
   ; Basic header to allow RUN to work
   * = $0801
   .word (+), 2005
@@ -46,17 +44,121 @@ start:
 
   cli
 
-  jmp *
+  lda #$FE
 
-snowflake_impls:
-  .for i=0, i<39, i += 1
-  #snowflake i, i
-  .next
-  rts
+  ; Store some pixels in the screen buffer data
+  sta screen_buffer_data+10
+  sta screen_buffer_data+20
+  sta screen_buffer_data+30
+  sta screen_buffer_data+40
+
+  ; Copy screen buffer data from the initial location
+  ; to the actual screen memory
+  ldx #$00
+  ldy #$00
+- lda screen_buffer_data,y
+  sta $2000,x
+  iny
+  lda screen_buffer_data,y
+  sta $2100,x
+  iny
+  lda screen_buffer_data,y
+  sta $2200,x
+  iny
+  lda screen_buffer_data,y
+  sta $2300,x
+  iny
+  lda screen_buffer_data,y
+  sta $2400,x
+  iny
+  lda screen_buffer_data,y
+  sta $2500,x
+  iny
+  lda screen_buffer_data,y
+  sta $2600,x
+  iny
+  lda screen_buffer_data,y
+  sta $2700,x
+  iny
+  lda screen_buffer_data,y
+  sta $2800,x
+  iny
+  lda screen_buffer_data,y
+  sta $2900,x
+  iny
+  lda screen_buffer_data,y
+  sta $2a00,x
+  iny
+  lda screen_buffer_data,y
+  sta $2b00,x
+  iny
+  lda screen_buffer_data,y
+  sta $2c00,x
+  iny
+  lda screen_buffer_data,y
+  sta $2d00,x
+  iny
+  lda screen_buffer_data,y
+  sta $2e00,x
+  iny
+  lda screen_buffer_data,y
+  sta $2f00,x
+  iny
+  lda screen_buffer_data,y
+  sta $3000,x
+  iny
+  lda screen_buffer_data,y
+  sta $3100,x
+  iny
+  lda screen_buffer_data,y
+  sta $3200,x
+  iny
+  lda screen_buffer_data,y
+  sta $3300,x
+  iny
+  lda screen_buffer_data,y
+  sta $3400,x
+  iny
+  lda screen_buffer_data,y
+  sta $3500,x
+  iny
+  lda screen_buffer_data,y
+  sta $3600,x
+  iny
+  lda screen_buffer_data,y
+  sta $3700,x
+  iny
+  lda screen_buffer_data,y
+  sta $3800,x
+  iny
+  lda screen_buffer_data,y
+  sta $3900,x
+  iny
+  lda screen_buffer_data,y
+  sta $3a00,x
+  iny
+  lda screen_buffer_data,y
+  sta $3b00,x
+  iny
+  lda screen_buffer_data,y
+  sta $3c00,x
+  iny
+  lda screen_buffer_data,y
+  sta $3d00,x
+  iny
+  lda screen_buffer_data,y
+  sta $3e00,x
+  iny
+  lda screen_buffer_data,y
+  sta $3f00,x
+  dex
+  jmp -
+
+  jmp *
 
 snowisr:
   asl $d019 ; ack interrupt (re-enable it)
-  jsr snowflake_impls
+  ; TODO: This ISR is not doing anything at the moment
 out:
   jsr set_sid_isr
   pla
@@ -144,9 +246,9 @@ clear_screen:
   bne -
   rts
 
-; Snowflake counters initialized to 7
-counters:
-  .fill $100, 7
+screen_buffer_data:
+  ; Fill screen buffer with empty
+  .fill $FF, $FF
 
 * = $1000
   music .binary "Nantco_Bakker-Christmas_Medley.sid",126
