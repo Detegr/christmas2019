@@ -1,7 +1,5 @@
-counter_offset_from_screen_pos = $100
-
 init_snowflake .macro
-  sta $2000 + ($8 * \1) - counter_offset_from_screen_pos
+  sta counters + \1
 .endm
 
 scrnmem = $2000
@@ -10,10 +8,9 @@ bitmap_ram_pos .function i
 .endf scrnmem + ($8 * i)
 
 snowflake_counter_pos .function i
-.endf bitmap_ram_pos(i) - counter_offset_from_screen_pos
+.endf counters + i
 
 snowflake .macro
-  asl $d019 ; ack interrupt (re-enable it)
   ; Load empty pattern to Y register
   ; This is used to clear the previously used pixel
   ldy #$FF

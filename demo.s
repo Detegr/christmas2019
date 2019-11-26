@@ -38,23 +38,19 @@
 
   jsr clear_screen
 
-  ; Initialize snowflake counters
-  lda #$7
-  #init_snowflake 0
-  #init_snowflake 1
-  #init_snowflake 2
-  #init_snowflake 4
-  #init_snowflake 6
   cli
 
   jmp *
 
+snowflake_impls:
+  .for i=0, i<39, i += 1
+  #snowflake i, i
+  .next
+  rts
+
 snowisr:
-  #snowflake s,  0
-  #snowflake s2, 1
-  #snowflake s3, 2
-  #snowflake s3, 4
-  #snowflake s3, 6
+  asl $d019 ; ack interrupt (re-enable it)
+  jsr snowflake_impls
 out:
   jsr set_sid_isr
   pla
@@ -142,6 +138,9 @@ clear_screen:
   bne -
   rts
 
+; Snowflake counters initialized to 7
+counters:
+  .fill $100, 7
 
 * = $1000
   music .binary "Nantco_Bakker-Christmas_Medley.sid",126
