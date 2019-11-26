@@ -1,7 +1,13 @@
 .include "snowflake.s"
 
-  * = $8000
+  ; Basic header to allow RUN to work
+  * = $0801
+  .word (+), 2005
+  .null $9e, format("%d", start)
++ .word 0
 
+  * = $8000
+start:
   sei
 
   ; Initialize sid playback
