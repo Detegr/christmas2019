@@ -71,7 +71,7 @@ copy_row .macro
 .endm
 
 copy_to_back_buffer .macro
-  #copy_row \1 + ($3e8 - $28), tmpbuf
+  #copy_row \1 + ($400 - $40), tmpbuf
   .for i=0, i<24, i+=1
   #copy_row \1 + (i * $28), \2 + ((i+1) * $28)
   .next
@@ -79,21 +79,21 @@ copy_to_back_buffer .macro
 .endm
 
 swap_screen_buf:
-  lda #%00100000
+  lda #%10000000
   and $d018
   bne higher
-  ; Enable 0x400 screen area
-  lda #%00110000
+  ; Enable 0x2400 screen area
+  lda #%10000000
   ora $d018
   sta $d018
-  #copy_to_back_buffer $400, $c00
+  #copy_to_back_buffer $400, $2400
   rts
 higher:
-  ; Enable 0xC00 screen area
-  lda #%11011111
+  ; Enable 0x400 screen area
+  lda #%01111111
   and $d018
   sta $d018
-  #copy_to_back_buffer $c00, $400
+  #copy_to_back_buffer $2400, $400
   rts
 
 sidisr:
@@ -134,10 +134,10 @@ clear_screen:
   sta $500,x
   sta $600,x
   sta $700,x
-  sta $c00,x
-  sta $d00,x
-  sta $e00,x
-  sta $f00,x
+  sta $2400,x
+  sta $2500,x
+  sta $2600,x
+  sta $2700,x
   lda #$0F
   sta $d800,x
   sta $d900,x
@@ -171,27 +171,29 @@ clear_screen:
   sta $791
   sta $7F2
 
-  sta $438 + $800 + $28
-  sta $44C + $800 + $28
-  sta $450 + $800 + $28
-  sta $482 + $800 + $28
-  sta $493 + $800 + $28
-  sta $4A2 + $800 + $28
-  sta $502 + $800 + $28
-  sta $520 + $800 + $28
-  sta $53F + $800 + $28
-  sta $595 + $800 + $28
-  sta $5C2 + $800 + $28
-  sta $602 + $800 + $28
-  sta $633 + $800 + $28
-  sta $6E3 + $800 + $28
-  sta $680 + $800 + $28
-  sta $699 + $800 + $28
-  sta $702 + $800 + $28
-  sta $742 + $800 + $28
-  sta $772 + $800 + $28
-  sta $791 + $800 + $28
-  sta $7F2 + $800 + $28
+  ; generate shifted snowflakes
+  ; to the secondary screen buffer
+  sta $2438 + $28
+  sta $244C + $28
+  sta $2450 + $28
+  sta $2482 + $28
+  sta $2493 + $28
+  sta $24A2 + $28
+  sta $2502 + $28
+  sta $2520 + $28
+  sta $253F + $28
+  sta $2595 + $28
+  sta $25C2 + $28
+  sta $2602 + $28
+  sta $2633 + $28
+  sta $26E3 + $28
+  sta $2680 + $28
+  sta $2699 + $28
+  sta $2702 + $28
+  sta $2742 + $28
+  sta $2772 + $28
+  sta $2791 + $28
+  sta $27F2 + $28
 
   rts
 
