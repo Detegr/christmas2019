@@ -45,11 +45,6 @@ start:
   sta $d015 ; Turn sprite 1 on
   sta $d01c ; Multicolor mode on
 
-  lda #$40
-  sta $d000
-  lda #$40
-  sta $d001
-
   lda #$02 ; sprite color
   sta $d027
   lda #$01 ; sprite multicolor 1
@@ -85,7 +80,20 @@ move_elf:
   lda #$01
   ora $d010
   sta $d010
-+ rts
+
+  ; Change elf's Y position
+  ; using the sine table
++ lda $d000
+  tax
+  lda sine,x
+  clc
+  adc #$40
+  adc elfscroll
+  sta $d001
+  ldx elfscroll
+  inx
+  stx elfscroll
+  rts
 
 elfisr:
   asl $d019 ; ack interrupt (re-enable it)
@@ -171,7 +179,7 @@ set_elf_isr:
   lda #%01111111
   and $d011 ; unset raster interrupt high bit
   sta $d011
-  lda #$E5
+  lda #$F0
   sta $d012
   rts
 
@@ -271,9 +279,13 @@ clear_screen:
 
 scroll:
   .byte $7
+elfscroll:
+  .byte $0
 
 tmpbuf:
   .fill $24, $0
+
+.include "sine.s"
 
 * = $1000
   music .binary "Nantco_Bakker-Christmas_Medley.sid",126
