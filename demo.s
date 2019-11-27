@@ -29,8 +29,8 @@ start:
   sty $d012 ; set raster interrupt
 
   ; Load the snowflake interrupt routine
-  lda #<sidisr
-  ldy #>sidisr
+  lda #<snowisr
+  ldy #>snowisr
   sta $314
   sty $315
 
@@ -97,8 +97,10 @@ move_elf:
 
 elfisr:
   asl $d019 ; ack interrupt (re-enable it)
+
   jsr move_elf
   jsr set_snow_isr
+
   pla
   tay
   pla
@@ -108,7 +110,18 @@ elfisr:
 
 snowisr:
   asl $d019 ; ack interrupt (re-enable it)
-  dec scroll
+
+  lda scroll
+  cmp #$6
+  beq +
+  jmp +++
++ lda #%10000000
+  and $d018
+  bne +
+  #copy_to_back_buffer $400, $2400
+  jmp ++
++ #copy_to_back_buffer $2400, $400
++ dec scroll
   bpl +
   lda #%00010000
   sta $d011
@@ -135,11 +148,11 @@ copy_row .macro
 .endm
 
 copy_to_back_buffer .macro
-  #copy_row \1 + ($400 - $40), tmpbuf
+  #copy_row \1 + $28, \2
+  #copy_row \1 + ($400 - $40), \2
   .for i=0, i<24, i+=1
   #copy_row \1 + (i * $28), \2 + ((i+1) * $28)
   .next
-  #copy_row tmpbuf, \1
 .endm
 
 swap_screen_buf:
@@ -150,20 +163,19 @@ swap_screen_buf:
   lda #%10000000
   ora $d018
   sta $d018
-  #copy_to_back_buffer $400, $2400
   rts
 higher:
   ; Enable 0x400 screen area
   lda #%01111111
   and $d018
   sta $d018
-  #copy_to_back_buffer $2400, $400
   rts
 
 sidisr:
+  asl $d019 ; ack interrupt (re-enable it)
   jsr $1003
   jsr set_elf_isr
-  asl $d019 ; ack interrupt (re-enable it)
+
   pla
   tay
   pla
@@ -176,10 +188,10 @@ set_elf_isr:
   ldy #>elfisr
   sta $314
   sty $315
-  lda #%01111111
-  and $d011 ; unset raster interrupt high bit
+  lda #%10000000
+  ora $d011 ; unset raster interrupt high bit
   sta $d011
-  lda #$F0
+  lda #$1C
   sta $d012
   rts
 
@@ -191,7 +203,7 @@ set_sid_isr:
   lda #%01111111
   and $d011 ; unset raster interrupt high bit
   sta $d011
-  lda #$00
+  lda #$FF
   sta $d012
   rts
 
@@ -200,8 +212,8 @@ set_snow_isr:
   ldy #>snowisr
   sta $314
   sty $315
-  lda #%10000000
-  ora $d011 ; set raster interrupt high bit
+  lda #%01111111
+  and $d011 ; set raster interrupt high bit
   sta $d011
   lda #$00
   sta $d012
@@ -250,31 +262,6 @@ clear_screen:
   sta $772
   sta $791
   sta $7F2
-
-  ; generate shifted snowflakes
-  ; to the secondary screen buffer
-  sta $2438 + $28
-  sta $244C + $28
-  sta $2450 + $28
-  sta $2482 + $28
-  sta $2493 + $28
-  sta $24A2 + $28
-  sta $2502 + $28
-  sta $2520 + $28
-  sta $253F + $28
-  sta $2595 + $28
-  sta $25C2 + $28
-  sta $2602 + $28
-  sta $2633 + $28
-  sta $26E3 + $28
-  sta $2680 + $28
-  sta $2699 + $28
-  sta $2702 + $28
-  sta $2742 + $28
-  sta $2772 + $28
-  sta $2791 + $28
-  sta $27F2 + $28
-
   rts
 
 scroll:
@@ -283,7 +270,7 @@ elfscroll:
   .byte $0
 
 tmpbuf:
-  .fill $24, $0
+  .fill $28, $0
 
 .include "sine.s"
 
