@@ -1,3 +1,6 @@
+; vim: ft=64tass
+.include "elf.s"
+
   ; Basic header to allow RUN to work
   * = $0801
   .word (+), 2005
@@ -38,9 +41,62 @@ start:
 
   jsr clear_screen
 
+  lda #$01
+  sta $d015 ; Turn sprite 1 on
+  sta $d01c ; Multicolor mode on
+
+  lda #$40
+  sta $d000
+  lda #$40
+  sta $d001
+
+  lda #$02 ; sprite color
+  sta $d027
+  lda #$01 ; sprite multicolor 1
+  sta $d025
+  lda #$0a ; sprite multicolor 2
+  sta $d026
+
+  lda #$80 ; Sprite data at $2000
+  sta $0800 - $8 ; Set sprite pointer
+  sta $2800 - $8 ; Set sprite pointer
+
   cli
 
   jmp *
+
+move_elf:
+- lda $d010
+  and #$01
+  beq +
+  lda $d000
+  cmp #$56 ; TODO: Check the real max value
+  bmi +
+  lda #$00
+  sta $d000
+  lda #$FE
+  and $d010
+  sta $d010
++ lda $d000
+  clc
+  adc #$02
+  sta $d000
+  bcc +
+  lda #$01
+  ora $d010
+  sta $d010
++ rts
+
+elfisr:
+  asl $d019 ; ack interrupt (re-enable it)
+  jsr move_elf
+  jsr set_snow_isr
+  pla
+  tay
+  pla
+  tax
+  pla
+  rti
 
 snowisr:
   asl $d019 ; ack interrupt (re-enable it)
@@ -98,7 +154,7 @@ higher:
 
 sidisr:
   jsr $1003
-  jsr set_snow_isr
+  jsr set_elf_isr
   asl $d019 ; ack interrupt (re-enable it)
   pla
   tay
@@ -106,6 +162,18 @@ sidisr:
   tax
   pla
   rti
+
+set_elf_isr:
+  lda #<elfisr
+  ldy #>elfisr
+  sta $314
+  sty $315
+  lda #%01111111
+  and $d011 ; unset raster interrupt high bit
+  sta $d011
+  lda #$E5
+  sta $d012
+  rts
 
 set_sid_isr:
   lda #<sidisr
@@ -115,6 +183,8 @@ set_sid_isr:
   lda #%01111111
   and $d011 ; unset raster interrupt high bit
   sta $d011
+  lda #$00
+  sta $d012
   rts
 
 set_snow_isr:
@@ -125,6 +195,8 @@ set_snow_isr:
   lda #%10000000
   ora $d011 ; set raster interrupt high bit
   sta $d011
+  lda #$00
+  sta $d012
   rts
 
 clear_screen:
