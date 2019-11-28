@@ -41,58 +41,138 @@ start:
 
   jsr clear_screen
 
+  lda #$03
+  sta $d015 ; Turn sprites 1 and 2 on
   lda #$01
-  sta $d015 ; Turn sprite 1 on
-  sta $d01c ; Multicolor mode on
+  sta $d01c ; Multicolor mode for sprite 1
 
   lda #$02 ; sprite color
-  sta $d027
-  lda #$01 ; sprite multicolor 1
+  sta $d027 ; sprite 1
+
+  lda #$01 ; sprite color
+  sta $d028 ; sprite 2
+
+  lda #$01 ; sprite 1 multicolor 1
   sta $d025
-  lda #$0a ; sprite multicolor 2
+  lda #$0a ; sprite 1 multicolor 2
   sta $d026
 
-  lda #$80 ; Sprite data at $2000
-  sta $0800 - $8 ; Set sprite pointer
-  sta $2800 - $8 ; Set sprite pointer
+  lda #$80 ; Sprite 1 data at $2000
+  sta $0800 - $8 ; Set sprite 1 pointer
+  sta $2800 - $8 ; Set sprite 1 pointer
+
+  lda #$85 ; Sprite 2 data at $2140
+  sta $0800 - $7 ; Set sprite 2 pointer
+  sta $2800 - $7 ; Set sprite 2 pointer
+
+  lda #$40
+  sta $d002
+  sta $d003
+
+  lda #$00
+  sta $d010
+  lda #$50
+  sta $d000
 
   cli
-
   jmp *
 
-move_elf:
+move_sprite_right .macro
+  ; \1 is the sprite x coordinate location
+  ; \2 is the bit pattern to extract the 9th bit
+  ;    from $d010
+  ; \3 is the reverse bit pattern of \2
 - lda $d010
-  and #$01
+  and \2
   beq +
-  lda $d000
+  lda \1
   cmp #$56 ; TODO: Check the real max value
   bmi +
   lda #$00
-  sta $d000
-  lda #$FE
+  sta \1
+  lda \3
   and $d010
   sta $d010
-+ lda $d000
++ lda \1
   clc
   adc #$02
-  sta $d000
+  sta \1
   bcc +
-  lda #$01
+  lda \2
   ora $d010
   sta $d010
++ nop
+.endm
+
+move_sprite_left .macro
+  ; \1 is the sprite x coordinate location
+  ; \2 is the bit pattern to extract the 9th bit
+  ;    from $d010
+  ; \3 is the reverse bit pattern of \2
+
+  ; check 9th bit
+- lda $d010
+  and \2
+  beq ++
+
+  ; 9th bit set
+  lda \1
+  clc
+  sbc #$01
+  sta \1
+  bcs +++
+
+  ; 9th bit set and x overflown
+  ; unset 9th bit and set x=$FF
++ lda #$FF
+  sta \1
+  lda \3
+  and $d010
+  sta $d010
+  jmp ++
+
+  ; decrement x
+  ; set x=$155 if x == 0
++ lda \1
+  clc
+  sbc #$01
+  sta \1
+  bcs +
+  lda $d010
+  ora \2
+  sta $d010
+  lda #$55
+  sta \1
++ nop
+.endm
+
+move_elf:
+  #move_sprite_right $d000, #$01, #$FE
+  #move_sprite_left $d002, #$02, #$FD
 
   ; Change elf's Y position
   ; using the sine table
 + lda $d000
   tax
   lda sine,x
-  clc
   adc #$40
   adc elfscroll
   sta $d001
   ldx elfscroll
   inx
   stx elfscroll
+
+  ; Change logo's Y position
+  ; using the sine table
+  lda $d002
+  tax
+  lda sine,x
+  sbc #$70
+  adc logoscroll
+  sta $d003
+  ldx logoscroll
+  dex
+  stx logoscroll
   rts
 
 elfisr:
@@ -268,6 +348,8 @@ scroll:
   .byte $7
 elfscroll:
   .byte $0
+logoscroll:
+  .byte $ff
 
 tmpbuf:
   .fill $28, $0
