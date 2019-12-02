@@ -193,15 +193,34 @@ snowisr:
 
   lda scroll
   cmp #$6
-  beq +
-  jmp +++
-+ lda #%10000000
-  and $d018
-  bne +
-  #copy_to_back_buffer $400, $2400
-  jmp ++
-+ #copy_to_back_buffer $2400, $400
-+ dec scroll
+  beq first
+  cmp #$5
+  beq second
+  cmp #$4
+  beq third
+  cmp #$3
+  beq fourth
+  jmp snowfall
+
+first:
+  #copy_row $428, $2400
+  #copy_row $400 + ($400 - $40), $2400
+  #copy_to_back_buffer $400, $2400, 0
+  jmp snowfall
+
+second:
+  #copy_to_back_buffer $400, $2400, 1
+  jmp snowfall
+
+third:
+  #copy_to_back_buffer $400, $2400, 2
+  jmp snowfall
+
+fourth:
+  #copy_to_back_buffer $400, $2400, 3
+
+snowfall:
+  dec scroll
   bpl +
   lda #%00010000
   sta $d011
@@ -228,9 +247,17 @@ copy_row .macro
 .endm
 
 copy_to_back_buffer .macro
-  #copy_row \1 + $28, \2
-  #copy_row \1 + ($400 - $40), \2
-  .for i=0, i<24, i+=1
+  lda #%10000000
+  and $d018
+  bne +
+  #internal_copy_to_back_buffer \1, \2, \3
+  jmp ++
++ #internal_copy_to_back_buffer \2, \1, \3
++ nop
+.endm
+
+internal_copy_to_back_buffer .macro
+  .for i=(\3 * 6), i<((\3 + 1) * 6), i+=1
   #copy_row \1 + (i * $28), \2 + ((i+1) * $28)
   .next
 .endm
