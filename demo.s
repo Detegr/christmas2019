@@ -1,5 +1,5 @@
 ; vim: ft=64tass
-debug = false
+debug = 0
 
 .include "elf.s"
 
