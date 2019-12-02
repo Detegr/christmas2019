@@ -1,4 +1,6 @@
 ; vim: ft=64tass
+debug = false
+
 .include "elf.s"
 
   ; Basic header to allow RUN to work
@@ -176,11 +178,21 @@ move_elf:
   rts
 
 elfisr:
+.if debug
+  lda #$01
+  sta $d020
+  sta $d021
+.endif
   asl $d019 ; ack interrupt (re-enable it)
 
   jsr move_elf
   jsr set_snow_isr
 
+.if debug
+  lda #$00
+  sta $d020
+  sta $d021
+.endif
   pla
   tay
   pla
@@ -189,6 +201,11 @@ elfisr:
   rti
 
 snowisr:
+.if debug
+  lda #$02
+  sta $d020
+  sta $d021
+.endif
   asl $d019 ; ack interrupt (re-enable it)
 
   lda scroll
@@ -231,6 +248,11 @@ snowfall:
 + inc $d011
 out:
   jsr set_sid_isr
+.if debug
+  lda #$00
+  sta $d020
+  sta $d021
+.endif
   pla
   tay
   pla
@@ -280,8 +302,21 @@ higher:
 
 sidisr:
   asl $d019 ; ack interrupt (re-enable it)
+
+.if debug
+  lda #$07
+  sta $d020
+  sta $d021
+.endif
+
   jsr $1003
   jsr set_elf_isr
+
+.if debug
+  lda #$00
+  sta $d020
+  sta $d021
+.endif
 
   pla
   tay
