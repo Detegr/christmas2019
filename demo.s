@@ -13,6 +13,9 @@ debug = 0
 start:
   sei
 
+  lda #$35 ; ram visible in $A000-$BFFF and $E000-$FFFF
+  sta $01
+
   ; Initialize sid playback
   lda #$00
   jsr $1000 ; sid init address
@@ -33,8 +36,8 @@ start:
   ; Load the snowflake interrupt routine
   lda #<snowisr
   ldy #>snowisr
-  sta $314
-  sty $315
+  sta $fffe
+  sty $ffff
 
   ; Clear screen
   lda #$00
@@ -193,11 +196,6 @@ elfisr:
   sta $d020
   sta $d021
 .endif
-  pla
-  tay
-  pla
-  tax
-  pla
   rti
 
 snowisr:
@@ -253,11 +251,6 @@ out:
   sta $d020
   sta $d021
 .endif
-  pla
-  tay
-  pla
-  tax
-  pla
   rti
 
 copy_row .macro
@@ -318,18 +311,13 @@ sidisr:
   sta $d021
 .endif
 
-  pla
-  tay
-  pla
-  tax
-  pla
   rti
 
 set_elf_isr:
   lda #<elfisr
   ldy #>elfisr
-  sta $314
-  sty $315
+  sta $fffe
+  sty $ffff
   lda #%10000000
   ora $d011 ; unset raster interrupt high bit
   sta $d011
@@ -340,8 +328,8 @@ set_elf_isr:
 set_sid_isr:
   lda #<sidisr
   ldy #>sidisr
-  sta $314
-  sty $315
+  sta $fffe
+  sty $ffff
   lda #%01111111
   and $d011 ; unset raster interrupt high bit
   sta $d011
@@ -352,8 +340,8 @@ set_sid_isr:
 set_snow_isr:
   lda #<snowisr
   ldy #>snowisr
-  sta $314
-  sty $315
+  sta $fffe
+  sty $ffff
   lda #%01111111
   and $d011 ; set raster interrupt high bit
   sta $d011
