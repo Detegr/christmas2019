@@ -218,8 +218,6 @@ snowisr:
   jmp snowfall
 
 first:
-  #copy_row $428, $2400
-  #copy_row $400 + ($400 - $40), $2400
   #copy_to_back_buffer $400, $2400, 0
   jmp snowfall
 
@@ -272,6 +270,10 @@ copy_to_back_buffer .macro
 .endm
 
 internal_copy_to_back_buffer .macro
+  .if \3 == 0
+  #copy_row \1 + $28, \2
+  #copy_row \1 + ($400 - $40), \2
+  .endif
   .for i=(\3 * 6), i<((\3 + 1) * 6), i+=1
   #copy_row \1 + (i * $28), \2 + ((i+1) * $28)
   .next
