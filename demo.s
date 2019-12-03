@@ -70,16 +70,16 @@ start:
   sta $0800 - $7 ; Set sprite 2 pointer
   sta $2800 - $7 ; Set sprite 2 pointer
 
-  lda #$40
+  lda #$50
   sta $d002
   sta $d003
 
-  lda #$00
-  sta $d010
-  lda #$50
+  lda #$D0
   sta $d000
+  sta $d001
 
   cli
+
   jmp *
 
 move_sprite_right .macro
@@ -157,27 +157,27 @@ move_elf:
 
   ; Change elf's Y position
   ; using the sine table
-+ lda $d000
-  tax
-  lda sine,x
-  adc #$40
-  adc elfscroll
-  sta $d001
-  ldx elfscroll
-  inx
-  stx elfscroll
++ ;lda $d000
+  ;tax
+  ;lda sine,x
+  ;adc #$40
+  ;adc elfscroll
+  ;sta $d001
+  ;ldx elfscroll
+  ;inx
+  ;stx elfscroll
 
   ; Change logo's Y position
   ; using the sine table
-  lda $d002
-  tax
-  lda sine,x
-  sbc #$70
-  adc logoscroll
-  sta $d003
-  ldx logoscroll
-  dex
-  stx logoscroll
+  ;lda $d002
+  ;tax
+  ;lda sine,x
+  ;sbc #$70
+  ;adc logoscroll
+  ;sta $d003
+  ;ldx logoscroll
+  ;dex
+  ;stx logoscroll
   rts
 
 elfisr:
@@ -235,20 +235,36 @@ fourth:
 snowfall:
   dec scroll
   bpl +
-  lda #%00010000
-  sta $d011
+  ;lda #%00010000
+  ;sta $d011
   lda #$7
   sta scroll
   jsr swap_screen_buf
   jmp out
-+ inc $d011
++ ;inc $d011
 out:
-  jsr set_sid_isr
+  jsr set_rasterbar_isr
 .if debug
   lda #$00
   sta $d020
   sta $d021
 .endif
+  rti
+
+rasterbarisr:
+  asl $d019
+  lda #$04
+  sta $d020
+  sta $d021
+  jsr set_rasterbar_off_isr
+  rti
+
+rasterbaroffisr:
+  asl $d019
+  lda #$00
+  sta $d020
+  sta $d021
+  jsr set_sid_isr
   rti
 
 copy_row .macro
@@ -314,6 +330,24 @@ sidisr:
 .endif
 
   rti
+
+set_rasterbar_isr:
+  lda #<rasterbarisr
+  ldy #>rasterbarisr
+  sta $fffe
+  sty $ffff
+  lda #$80
+  sta $d012
+  rts
+
+set_rasterbar_off_isr:
+  lda #<rasterbaroffisr
+  ldy #>rasterbaroffisr
+  sta $fffe
+  sty $ffff
+  lda #$b0
+  sta $d012
+  rts
 
 set_elf_isr:
   lda #<elfisr
