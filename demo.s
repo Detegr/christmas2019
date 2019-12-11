@@ -78,6 +78,11 @@ start:
   sta $d000
   sta $d001
 
+  ; screen at 0x400
+  ; charset at 0x2800
+  lda #$1a
+  sta $d018
+
   cli
 
   jmp *
@@ -235,21 +240,107 @@ fourth:
 snowfall:
   dec scroll
   bpl +
-  ;lda #%00010000
-  ;sta $d011
   lda #$7
   sta scroll
   jsr swap_screen_buf
-  jmp out
-+ ;inc $d011
-out:
-  jsr set_rasterbar_isr
+  jsr reset_snowflake
+  jmp ++
++ jsr step_snowflake
++ jsr set_rasterbar_isr
 .if debug
   lda #$00
   sta $d020
   sta $d021
 .endif
   rti
+
+reset_snowflake:
+  ; Snowflake character
+  lda #%00010000
+  sta $2970
+  lda #%01010100
+  sta $2971
+  lda #%00111000
+  sta $2972
+  lda #%11101110
+  sta $2973
+  lda #%00111000
+  sta $2974
+  lda #%01010100
+  sta $2975
+  lda #%00010000
+  sta $2976
+  lda #$00
+  sta $2977
+
+  ; Initialize the character that
+  ; the falling snowflake overflows into
+  ; to all zeros
+  lda #$00
+  sta $2980
+  sta $2981
+  sta $2982
+  sta $2983
+  sta $2984
+  sta $2985
+  sta $2986
+  sta $2987
+  rts
+
+step_snowflake:
+  ; Copy snowflake character data one step down
+  ; within the 8x8 character memory (0x2E).
+  ; Also copy the overflowing bytes to the next character (0x30)
+  lda #$00
+
+  ldx $2970
+  sta $2970
+
+  lda $2971
+  stx $2971
+
+  ldx $2972
+  sta $2972
+
+  lda $2973
+  stx $2973
+
+  ldx $2974
+  sta $2974
+
+  lda $2975
+  stx $2975
+
+  ldx $2976
+  sta $2976
+
+  lda $2977
+  stx $2977
+
+  ldx $2980
+  sta $2980
+
+  lda $2981
+  stx $2981
+
+  ldx $2982
+  sta $2982
+
+  lda $2983
+  stx $2983
+
+  ldx $2984
+  sta $2984
+
+  lda $2985
+  stx $2985
+
+  ldx $2986
+  sta $2986
+
+  lda $2987
+  stx $2987
+  rts
 
 rasterbarisr:
   asl $d019
@@ -401,33 +492,86 @@ clear_screen:
   sta $d900,x
   sta $da00,x
   sta $db00,x
+
+  ; Copy character rom to ram
+  ldy $01
+  lda #$31 ; make character rom visible
+  sta $01
+
+  lda $d000,x
+  sta $2800,x
+  lda $d100,x
+  sta $2900,x
+  lda $d200,x
+  sta $2a00,x
+  lda $d300,x
+  sta $2b00,x
+  lda $d400,x
+  sta $2c00,x
+  lda $d500,x
+  sta $2d00,x
+  lda $d600,x
+  sta $2e00,x
+  lda $d700,x
+  sta $2f00,x
   dex
+
+  sty $01 ; Restore ram visibility
   bne -
 
-  ; generate snowflakes
+  jsr generate_snowflakes
+  jsr reset_snowflake
+  rts
+
+generate_snowflakes:
+  ; Copy $2E character to pseudo-random positions
+  ; Copy $30 character one row below $2E characters
   lda #$2E
+  ldy #$30
   sta $450
+  sty $450+$28
   sta $438
+  sty $438+$28
   sta $44C
+  sty $44C+$28
   sta $450
+  sty $450+$28
   sta $482
+  sty $482+$28
   sta $493
+  sty $493+$28
   sta $4A2
+  sty $4A2+$28
   sta $502
+  sty $502+$28
   sta $520
+  sty $520+$28
   sta $53F
+  sty $53F+$28
   sta $595
+  sty $595+$28
   sta $5C2
+  sty $5C2+$28
   sta $602
+  sty $602+$28
   sta $633
+  sty $633+$28
   sta $6E3
+  sty $6E3+$28
   sta $680
+  sty $680+$28
   sta $699
+  sty $699+$28
   sta $702
+  sty $702+$28
   sta $742
+  sty $742+$28
   sta $772
+  sty $772+$28
   sta $791
+  sty $791+$28
   sta $7F2
+  sty $7F2+$28
   rts
 
 scroll:
