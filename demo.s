@@ -162,24 +162,24 @@ move_elf:
 
   ; Change elf's Y position
   ; using the sine table
-+ ;lda $d000
-  ;tax
-  ;lda sine,x
-  ;adc #$40
-  ;adc elfscroll
-  ;sta $d001
++ lda $d000
+  tax
+  lda sine,x
+  adc #$40
+  adc elfscroll
+  sta $d001
   ;ldx elfscroll
   ;inx
   ;stx elfscroll
 
   ; Change logo's Y position
   ; using the sine table
-  ;lda $d002
-  ;tax
-  ;lda sine,x
-  ;sbc #$70
-  ;adc logoscroll
-  ;sta $d003
+  lda $d002
+  tax
+  lda sine,x
+  sbc #$40
+  adc logoscroll
+  sta $d003
   ;ldx logoscroll
   ;dex
   ;stx logoscroll
