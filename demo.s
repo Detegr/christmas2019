@@ -344,9 +344,16 @@ step_snowflake:
 
 rasterbarisr:
   asl $d019
-  lda #$04
+  lda #$06
   sta $d020
   sta $d021
+
+  ; Switch charset to rasterbar
+  ; charset
+  lda #$04
+  ora $d018
+  sta $d018
+
   jsr set_rasterbar_off_isr
   rti
 
@@ -355,6 +362,11 @@ rasterbaroffisr:
   lda #$00
   sta $d020
   sta $d021
+
+  ; Switch charset back
+  lda #$fb
+  and $d018
+  sta $d018
   jsr set_sid_isr
   rti
 
@@ -499,6 +511,7 @@ clear_screen:
   sta $01
 
   lda $d000,x
+  sta $2800,x
   sta $2800,x
   lda $d100,x
   sta $2900,x
