@@ -79,8 +79,8 @@ start:
   sta $d001
 
   ; screen at 0x400
-  ; charset at 0x2800
-  lda #$1a
+  ; charset at 0x3000
+  lda #$1c
   sta $d018
 
   cli
@@ -246,7 +246,7 @@ snowfall:
   jsr reset_snowflake
   jmp ++
 + jsr step_snowflake
-+ jsr set_rasterbar_isr
++ jsr set_charset_change_isr
 .if debug
   lda #$00
   sta $d020
@@ -257,34 +257,34 @@ snowfall:
 reset_snowflake:
   ; Snowflake character
   lda #%00010000
-  sta $2970
+  sta $3170
   lda #%01010100
-  sta $2971
+  sta $3171
   lda #%00111000
-  sta $2972
+  sta $3172
   lda #%11101110
-  sta $2973
+  sta $3173
   lda #%00111000
-  sta $2974
+  sta $3174
   lda #%01010100
-  sta $2975
+  sta $3175
   lda #%00010000
-  sta $2976
+  sta $3176
   lda #$00
-  sta $2977
+  sta $3177
 
   ; Initialize the character that
   ; the falling snowflake overflows into
   ; to all zeros
   lda #$00
-  sta $2980
-  sta $2981
-  sta $2982
-  sta $2983
-  sta $2984
-  sta $2985
-  sta $2986
-  sta $2987
+  sta $3180
+  sta $3181
+  sta $3182
+  sta $3183
+  sta $3184
+  sta $3185
+  sta $3186
+  sta $3187
   rts
 
 step_snowflake:
@@ -293,53 +293,53 @@ step_snowflake:
   ; Also copy the overflowing bytes to the next character (0x30)
   lda #$00
 
-  ldx $2970
-  sta $2970
+  ldx $3170
+  sta $3170
 
-  lda $2971
-  stx $2971
+  lda $3171
+  stx $3171
 
-  ldx $2972
-  sta $2972
+  ldx $3172
+  sta $3172
 
-  lda $2973
-  stx $2973
+  lda $3173
+  stx $3173
 
-  ldx $2974
-  sta $2974
+  ldx $3174
+  sta $3174
 
-  lda $2975
-  stx $2975
+  lda $3175
+  stx $3175
 
-  ldx $2976
-  sta $2976
+  ldx $3176
+  sta $3176
 
-  lda $2977
-  stx $2977
+  lda $3177
+  stx $3177
 
-  ldx $2980
-  sta $2980
+  ldx $3180
+  sta $3180
 
-  lda $2981
-  stx $2981
+  lda $3181
+  stx $3181
 
-  ldx $2982
-  sta $2982
+  ldx $3182
+  sta $3182
 
-  lda $2983
-  stx $2983
+  lda $3183
+  stx $3183
 
-  ldx $2984
-  sta $2984
+  ldx $3184
+  sta $3184
 
-  lda $2985
-  stx $2985
+  lda $3185
+  stx $3185
 
-  ldx $2986
-  sta $2986
+  ldx $3186
+  sta $3186
 
-  lda $2987
-  stx $2987
+  lda $3187
+  stx $3187
   rts
 
 rasterbarisr:
@@ -348,13 +348,7 @@ rasterbarisr:
   sta $d020
   sta $d021
 
-  ; Switch charset to rasterbar
-  ; charset
-  lda #$04
-  ora $d018
-  sta $d018
-
-  jsr set_rasterbar_off_isr
+  jsr set_charset_revert_isr
   rti
 
 rasterbaroffisr:
@@ -363,10 +357,6 @@ rasterbaroffisr:
   sta $d020
   sta $d021
 
-  ; Switch charset back
-  lda #$fb
-  and $d018
-  sta $d018
   jsr set_sid_isr
   rti
 
@@ -434,6 +424,40 @@ sidisr:
 
   rti
 
+charsetchange:
+  ; Change to scrolling text screen area
+  ; $c00 $2c00 or
+  lda #%00100000
+  ora $d018
+  sta $d018
+  jsr set_rasterbar_isr
+  rti
+
+charsetrevert:
+  lda #%11011111
+  and $d018
+  sta $d018
+  jsr set_rasterbar_off_isr
+  rti
+
+set_charset_change_isr:
+  lda #<charsetchange
+  ldy #>charsetchange
+  sta $fffe
+  sty $ffff
+  lda #$7e
+  sta $d012
+  rts
+
+set_charset_revert_isr:
+  lda #<charsetrevert
+  ldy #>charsetrevert
+  sta $fffe
+  sty $ffff
+  lda #$ae
+  sta $d012
+  rts
+
 set_rasterbar_isr:
   lda #<rasterbarisr
   ldy #>rasterbarisr
@@ -495,10 +519,19 @@ clear_screen:
   sta $500,x
   sta $600,x
   sta $700,x
+  sta $c00,x
+  sta $d00,x
+  sta $e00,x
+  sta $f00,x
   sta $2400,x
   sta $2500,x
   sta $2600,x
   sta $2700,x
+  sta $2c00,x
+  sta $2d00,x
+  sta $2e00,x
+  sta $2f00,x
+
   lda #$0F
   sta $d800,x
   sta $d900,x
@@ -511,28 +544,36 @@ clear_screen:
   sta $01
 
   lda $d000,x
-  sta $2800,x
-  sta $2800,x
+  sta $3000,x
   lda $d100,x
-  sta $2900,x
+  sta $3100,x
   lda $d200,x
-  sta $2a00,x
+  sta $3200,x
   lda $d300,x
-  sta $2b00,x
+  sta $3300,x
   lda $d400,x
-  sta $2c00,x
+  sta $3400,x
   lda $d500,x
-  sta $2d00,x
+  sta $3500,x
   lda $d600,x
-  sta $2e00,x
+  sta $3600,x
   lda $d700,x
-  sta $2f00,x
+  sta $3700,x
   dex
 
   sty $01 ; Restore ram visibility
   bne -
 
-  jsr generate_snowflakes
+  ; Place greeting text
+  ldx #$00
+- lda greetings,x
+  beq +
+  sta $0ded,x
+  sta $2ded,x
+  inx
+  jmp -
+
++ jsr generate_snowflakes
   jsr reset_snowflake
   rts
 
@@ -596,6 +637,11 @@ logoscroll:
 
 tmpbuf:
   .fill $28, $0
+
+.enc screen
+greetings: .text "MERRY CHRISTMAS"
+.byte 0
+.enc none
 
 .include "sine.s"
 
