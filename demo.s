@@ -1,5 +1,9 @@
 ; vim: ft=64tass
 debug = 0
+; positin of the text scroller
+greetings_pos = $0de5
+; size of visible area of the text scroller
+greetings_size = 30
 
 .include "elf.s"
 
@@ -348,7 +352,7 @@ rasterbarisr:
   sta $d020
   sta $d021
 
-  jsr set_charset_revert_isr
+  jsr set_text_scroll_isr
   rti
 
 rasterbaroffisr:
@@ -363,7 +367,75 @@ rasterbaroffisr:
   sta $d020
   sta $d021
 
+  lda $d016
+  and #%11111000
+  sta $d016
+
   jsr set_sid_isr
+  rti
+
+textscrollisr:
+  asl $d019
+
+  ; update hardware scroll register
+  ; unless we've already done that 8 times
+  ldx textscroll
+  cpx #$9
+  bne ++
+
+  ; load the next character from the scroller
+  ; text to y register
+  ldx nextchar
+  ldy greetings,x
+
+  ; move characters one character left for each
+  ; character in the visible area of the scroller
+  ldx #$0
+- lda greetings_pos,x+1
+  sta greetings_pos,x
+  lda greetings_pos+$2000,x+1
+  sta greetings_pos+$2000,x
+  inx
+  cpx #greetings_size
+  bne -
+
+  ; store the next character to the rightmost
+  ; position of the scroller
+  sty greetings_pos+greetings_size
+  sty greetings_pos+greetings_size+$2000
+
+  ; check if the next character is zero
+  ; this indicates the end of string
+  inc nextchar
+  ldx nextchar
+  lda greetings,x
+  cmp #$0
+  bne +
+
+  ; if nextchar==0, reset the nextchar variable
+  lda #$0
+  sta nextchar
+
+  ; reset the scroll amount
++ ldx #$1
+  stx textscroll
+
+  ; update the hardware scroll register
+  ; by subtracting textscroll from the first
+  ; 3 bits of $d016
++ lda $d016
+  and #%11111000
+  tax
+  sec
+  sbc textscroll
+  and #%00000111
+  sta scrolltmp
+  txa
+  ora scrolltmp
+  sta $d016
+  inc textscroll
+
++ jsr set_charset_revert_isr
   rti
 
 copy_row .macro
@@ -447,6 +519,18 @@ charsetrevert:
   sta $d018
   jsr set_rasterbar_off_isr
   rti
+
+set_text_scroll_isr:
+  lda #<textscrollisr
+  ldy #>textscrollisr
+  sta $fffe
+  sty $ffff
+  lda #%01111111
+  and $d011 ; unset raster interrupt high bit
+  sta $d011
+  lda #$81
+  sta $d012
+  rts
 
 set_charset_change_isr:
   lda #<charsetchange
@@ -572,14 +656,13 @@ clear_screen:
   sty $01 ; Restore ram visibility
   bne -
 
-  ; Place greeting text
-  ldx #$00
+  ; Place greeting text scroller
+  ldx #greetings_size
 - lda greetings,x
-  beq +
-  sta $0ded,x
-  sta $2ded,x
-  inx
-  jmp -
+  sta greetings_pos,x
+  sta greetings_pos+$2000,x
+  dex
+  bpl -
 
 + jsr generate_snowflakes
   jsr reset_snowflake
@@ -642,13 +725,23 @@ elfscroll:
   .byte $0
 logoscroll:
   .byte $ff
-
+; textscroll is a value between 1-8
+; which is subtracted from the hardware scroll
+; register to achieve right to left scrolling
+textscroll:
+  .byte $1
+scrolltmp:
+  .byte $0
+nextchar:
+  .byte greetings_size+1
 tmpbuf:
   .fill $28, $0
 
 .enc screen
-greetings: .text "MERRY CHRISTMAS"
-.byte 0
+greetings:
+  .text "                                "
+  .text "MERRY CHRISTMAS AND A HAPPY NEW YEAR!         "
+  .text 0
 .enc none
 
 .include "sine.s"
