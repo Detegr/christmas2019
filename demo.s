@@ -353,6 +353,12 @@ rasterbarisr:
 
 rasterbaroffisr:
   asl $d019
+
+  ; wait for the scanline to finish drawing
+  .rept 20
+  nop
+  .next
+
   lda #$00
   sta $d020
   sta $d021
@@ -427,6 +433,7 @@ sidisr:
 charsetchange:
   ; Change to scrolling text screen area
   ; $c00 $2c00 or
+  asl $d019
   lda #%00100000
   ora $d018
   sta $d018
@@ -434,6 +441,7 @@ charsetchange:
   rti
 
 charsetrevert:
+  asl $d019
   lda #%11011111
   and $d018
   sta $d018
@@ -454,7 +462,7 @@ set_charset_revert_isr:
   ldy #>charsetrevert
   sta $fffe
   sty $ffff
-  lda #$ae
+  lda #$a3
   sta $d012
   rts
 
@@ -472,7 +480,7 @@ set_rasterbar_off_isr:
   ldy #>rasterbaroffisr
   sta $fffe
   sty $ffff
-  lda #$b0
+  lda #$a5
   sta $d012
   rts
 
