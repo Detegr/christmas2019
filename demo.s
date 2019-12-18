@@ -1,7 +1,7 @@
 ; vim: ft=64tass
 debug = 0
 ; positin of the text scroller
-greetings_pos = $0de5
+greetings_pos = $0e0d
 ; size of visible area of the text scroller
 greetings_size = 30
 
@@ -348,18 +348,101 @@ step_snowflake:
 
 rasterbarisr:
   asl $d019
-  lda #$06
-  sta $d020
+
+  lda #$0E
   sta $d021
+  sta $d020
+  .rept 26
+  nop
+  .next
+  lda #$03
+  sta $d021
+  sta $d020
+  .rept 26
+  nop
+  .next
+  lda #$01
+  sta $d021
+  sta $d020
+  .rept 26
+  nop
+  .next
+
+  lda #$01
+  sta $d021
+  sta $d020
+  .rept 26
+  nop
+  .next
+
+  lda #$03
+  sta $d021
+  sta $d020
+  .rept 26
+  nop
+  .next
+
+  lda #$0E
+  sta $d021
+  sta $d020
+  .rept 26
+  nop
+  .next
+
+  lda #$06
+  sta $d021
+  sta $d020
 
   jsr set_text_scroll_isr
   rti
 
 rasterbaroffisr:
-  asl $d019
 
-  ; wait for the scanline to finish drawing
+  asl $d019
   .rept 20
+  nop
+  .next
+
+  lda #$0E
+  sta $d020
+  sta $d021
+
+  .rept 30
+  nop
+  .next
+
+  lda #$03
+  sta $d020
+  sta $d021
+  .rept 26
+  nop
+  .next
+
+  lda #$01
+  sta $d020
+  sta $d021
+  .rept 26
+  nop
+  .next
+
+  lda #$01
+  sta $d020
+  sta $d021
+  .rept 26
+  nop
+  .next
+
+  lda #$03
+  sta $d020
+  sta $d021
+  .rept 26
+  nop
+  .next
+
+  lda #$0E
+  sta $d020
+  sta $d021
+  .rept 26
   nop
   .next
 
@@ -528,7 +611,7 @@ set_text_scroll_isr:
   lda #%01111111
   and $d011 ; unset raster interrupt high bit
   sta $d011
-  lda #$81
+  lda #$87
   sta $d012
   rts
 
@@ -546,7 +629,7 @@ set_charset_revert_isr:
   ldy #>charsetrevert
   sta $fffe
   sty $ffff
-  lda #$a3
+  lda #$ad
   sta $d012
   rts
 
@@ -564,7 +647,7 @@ set_rasterbar_off_isr:
   ldy #>rasterbaroffisr
   sta $fffe
   sty $ffff
-  lda #$a5
+  lda #$b1
   sta $d012
   rts
 
