@@ -29,6 +29,8 @@ start:
   ldx #$01
   sta $dc0d ; Cancel CIA interrupts
   sta $dd0d ; Cancel CIA 2 interrupts
+  bit $dc0d ; Cancel pending interrupts
+  bit $dd0d ; Cancel pending interrupts
   stx $d01a ; Turn on raster interrupts
 
   ; Interrupt at raster line 256 for sid playback
