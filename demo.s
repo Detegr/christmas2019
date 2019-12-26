@@ -442,9 +442,14 @@ rasterbaroffisr:
   lda #$0E
   sta $d020
   sta $d021
-  .rept 26
+
+  .rept 20
   nop
   .next
+
+  lda #%11011111
+  and $d018
+  sta $d018
 
   lda #$00
   sta $d020
@@ -518,7 +523,7 @@ textscrollisr:
   sta $d016
   inc textscroll
 
-+ jsr set_charset_revert_isr
++ jsr set_rasterbar_off_isr
   rti
 
 copy_row .macro
@@ -595,14 +600,6 @@ charsetchange:
   jsr set_rasterbar_isr
   rti
 
-charsetrevert:
-  asl $d019
-  lda #%11011111
-  and $d018
-  sta $d018
-  jsr set_rasterbar_off_isr
-  rti
-
 set_text_scroll_isr:
   lda #<textscrollisr
   ldy #>textscrollisr
@@ -621,15 +618,6 @@ set_charset_change_isr:
   sta $fffe
   sty $ffff
   lda #$7e
-  sta $d012
-  rts
-
-set_charset_revert_isr:
-  lda #<charsetrevert
-  ldy #>charsetrevert
-  sta $fffe
-  sty $ffff
-  lda #$ad
   sta $d012
   rts
 
